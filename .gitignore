@@ -15,6 +15,12 @@ ENV/
 dist/
 build/
 
+# PyInstaller
+*.spec
+*.manifest
+*.exe
+*.app
+
 
 .vscode/
 .idea/
