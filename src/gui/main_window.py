@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 import subprocess
 import shutil
+import threading
+from ..utils.lune_installer import LuneInstaller
 
 
 class MainWindow:
@@ -15,7 +17,13 @@ class MainWindow:
         self.selected_file = None
         self.output_dir = None
         
+        install_dir = Path.home() / ".rblx2rojo" / "lune"
+        self.lune_installer = LuneInstaller(install_dir)
+        self.lune_path = None
+        
         self._setup_ui()
+        
+        self.root.after(100, self._check_lune)
     
     def _setup_ui(self):
         main_frame = ttk.Frame(self.root, padding="20")
@@ -97,6 +105,78 @@ class MainWindow:
         self.status_text.config(state=tk.DISABLED)
         self.root.update()
     
+    def _check_lune(self):
+        if self.lune_installer.is_installed():
+            self.lune_path = str(self.lune_installer.lune_path)
+            self._log(f"✓ Lune found at: {self.lune_path}")
+            return
+        
+        if shutil.which("lune"):
+            try:
+                result = subprocess.run(
+                    ["lune", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    self.lune_path = "lune"
+                    self._log("✓ Lune found in PATH")
+                    return
+            except (subprocess.TimeoutExpired, Exception):
+                pass
+        
+        result = messagebox.askyesno(
+            "Lune Not Found",
+            "Lune runtime is required for this tool.\n\n"
+            "Would you like to download and install Lune automatically?\n\n"
+            "(It will be installed locally in ~/.rblx2rojo/lune)",
+            icon="question"
+        )
+        
+        if not result:
+            self._log("✗ Lune installation declined. Exiting...")
+            messagebox.showinfo(
+                "Installation Required",
+                "Please install Lune manually from:\nhttps://lune-org.github.io/docs"
+            )
+            self.root.after(500, self.root.quit)
+            return
+        
+        self._install_lune()
+    
+    def _install_lune(self):
+        self.convert_button.config(state=tk.DISABLED)
+        self.progress.start()
+        
+        def install_worker():
+            try:
+                def progress_callback(msg):
+                    self.root.after(0, self._log, msg)
+                
+                path = self.lune_installer.download_and_install(progress_callback)
+                self.lune_path = path
+                self.root.after(0, self._on_install_success)
+            except Exception as e:
+                self.root.after(0, self._on_install_error, str(e))
+        
+        thread = threading.Thread(target=install_worker, daemon=True)
+        thread.start()
+    
+    def _on_install_success(self):
+        self.progress.stop()
+        self.convert_button.config(state=tk.NORMAL if (self.selected_file and self.output_dir) else tk.DISABLED)
+    
+    def _on_install_error(self, error_msg: str):
+        self.progress.stop()
+        self._log(f"✗ Installation failed: {error_msg}")
+        messagebox.showerror(
+            "Installation Failed",
+            f"Failed to install Lune:\n{error_msg}\n\n"
+            "Please install Lune manually from:\nhttps://lune-org.github.io/docs"
+        )
+        self.root.after(500, self.root.quit)
+    
     def _convert(self):
         try:
             self.convert_button.config(state=tk.DISABLED)
@@ -107,8 +187,8 @@ class MainWindow:
             
             self._log(f"Starting conversion of {self.selected_file.name}...")
             
-            if not shutil.which("lune"):
-                raise Exception("Lune is not installed. Please install it from: https://lune-org.github.io/docs")
+            if not self.lune_path:
+                raise Exception("Lune is not available. Please restart the application.")
             
             script_path = Path(__file__).parent.parent / "converters" / "convert.luau"
             
@@ -118,7 +198,7 @@ class MainWindow:
             self._log("Running Lune conversion script...")
             
             result = subprocess.run(
-                ["lune", "run", str(script_path), str(self.selected_file), str(self.output_dir)],
+                [self.lune_path, "run", str(script_path), str(self.selected_file), str(self.output_dir)],
                 capture_output=True,
                 text=True
             )
