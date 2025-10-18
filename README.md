@@ -1,4 +1,4 @@
-# Rblx 2 Rojo
+# Roblox 2 Rojo
 
 A tool to convert Roblox RBXL/RBXM files to Rojo project structure.
 
