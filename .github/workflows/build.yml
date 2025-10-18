@@ -3,10 +3,10 @@ name: Build Executables
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
-  release:
-    types: [ created ]
 
 jobs:
   build-windows:
