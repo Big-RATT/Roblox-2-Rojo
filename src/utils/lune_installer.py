@@ -4,6 +4,7 @@ import json
 import zipfile
 import tarfile
 import stat
+import ssl
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -41,7 +42,11 @@ class LuneInstaller:
         raise Exception(f"Unsupported platform: {system} {machine}")
     
     def get_latest_release(self) -> Tuple[str, str]:
-        with urllib.request.urlopen(self.GITHUB_API_URL) as response:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        
+        with urllib.request.urlopen(self.GITHUB_API_URL, context=context) as response:
             data = json.loads(response.read())
         
         version = data["tag_name"].lstrip("v")
@@ -80,7 +85,14 @@ class LuneInstaller:
         
         zip_path = self.install_dir / "lune.zip"
         
-        urllib.request.urlretrieve(download_url, zip_path)
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        
+        req = urllib.request.Request(download_url)
+        with urllib.request.urlopen(req, context=context) as response:
+            with open(zip_path, 'wb') as f:
+                f.write(response.read())
         
         if progress_callback:
             progress_callback("Extracting...")
