@@ -6,12 +6,30 @@ local process = require("@lune/process")
 local args = process.args
 
 if #args < 2 then
-	print("Usage: lune run convert <input.rbxl|rbxm> <output_dir>")
+	print("Usage: lune run convert <input.rbxl|rbxm> <output_dir> [services_json]")
 	process.exit(1)
 end
 
 local inputPath = args[1]:gsub("\\", "/")
 local outputDir = args[2]:gsub("\\", "/")
+
+local enabledServices = {}
+if args[3] then
+	local servicesJson = args[3]
+	local decoded = serde.decode("json", servicesJson)
+	for _, serviceName in decoded do
+		enabledServices[serviceName] = true
+	end
+else
+	enabledServices = {
+		ServerScriptService = true,
+		ReplicatedStorage = true,
+		ServerStorage = true,
+		StarterPlayer = true,
+		StarterGui = true,
+		ReplicatedFirst = true,
+	}
+end
 
 local fileExtension = string.match(inputPath:lower(), "%.([^%.]+)$")
 local isModel = fileExtension == "rbxm" or fileExtension == "rbxmx"
@@ -351,6 +369,11 @@ if isModel then
 	end
 else
 	for _, serviceName in targetServices do
+		if not enabledServices[serviceName] then
+			print("Skipping", serviceName, "(disabled in filter)")
+			continue
+		end
+		
 		local service = game:GetService(serviceName)
 		
 		if service then

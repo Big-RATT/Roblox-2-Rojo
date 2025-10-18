@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import threading
+import json
 from ..utils.lune_installer import LuneInstaller
 
 
@@ -21,6 +22,18 @@ class MainWindow:
         self.lune_installer = LuneInstaller(install_dir)
         self.lune_path = None
         
+        self.services = {
+            "ServerScriptService": tk.BooleanVar(value=True),
+            "ReplicatedStorage": tk.BooleanVar(value=True),
+            "ServerStorage": tk.BooleanVar(value=True),
+            "StarterPlayer": tk.BooleanVar(value=True),
+            "StarterGui": tk.BooleanVar(value=True),
+            "ReplicatedFirst": tk.BooleanVar(value=True),
+        }
+        
+        self.panel_open = False
+        self.side_panel = None
+        
         self._setup_ui()
         
         self.root.after(100, self._check_lune)
@@ -29,8 +42,23 @@ class MainWindow:
         main_frame = ttk.Frame(self.root, padding="20")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        title = ttk.Label(main_frame, text="Rblx 2 Rojo Converter", font=("Arial", 16, "bold"))
-        title.grid(row=0, column=0, columnspan=3, pady=(0, 20))
+        header_frame = ttk.Frame(main_frame)
+        header_frame.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky=tk.W)
+        
+        self.menu_button = tk.Button(
+            header_frame,
+            text="☰",
+            font=("Arial", 18),
+            width=3,
+            height=1,
+            relief=tk.FLAT,
+            command=self._toggle_panel,
+            cursor="hand2"
+        )
+        self.menu_button.pack(side=tk.LEFT, padx=(0, 15))
+        
+        title = ttk.Label(header_frame, text="Roblox 2 Rojo Converter", font=("Arial", 16, "bold"))
+        title.pack(side=tk.LEFT)
         
         ttk.Label(main_frame, text="RBXL/RBXM File:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.file_entry = ttk.Entry(main_frame, width=40)
@@ -59,6 +87,45 @@ class MainWindow:
         scrollbar = ttk.Scrollbar(main_frame, command=self.status_text.yview)
         scrollbar.grid(row=5, column=3, sticky=(tk.N, tk.S))
         self.status_text.config(yscrollcommand=scrollbar.set)
+    
+    def _toggle_panel(self):
+        if self.panel_open:
+            self._close_panel()
+        else:
+            self._open_panel()
+    
+    def _open_panel(self):
+        if self.side_panel:
+            return
+        
+        self.panel_open = True
+        self.side_panel = tk.Toplevel(self.root)
+        self.side_panel.title("Service Filter")
+        self.side_panel.geometry(f"250x300+{self.root.winfo_x()}+{self.root.winfo_y()}")
+        self.side_panel.resizable(False, False)
+        self.side_panel.protocol("WM_DELETE_WINDOW", self._close_panel)
+        
+        panel_frame = ttk.Frame(self.side_panel, padding="20")
+        panel_frame.pack(fill=tk.BOTH, expand=True)
+        
+        title = ttk.Label(panel_frame, text="Services to Include", font=("Arial", 12, "bold"))
+        title.pack(pady=(0, 15))
+        
+        for service_name, var in self.services.items():
+            cb = ttk.Checkbutton(
+                panel_frame,
+                text=service_name,
+                variable=var,
+                onvalue=True,
+                offvalue=False
+            )
+            cb.pack(anchor=tk.W, pady=5)
+    
+    def _close_panel(self):
+        if self.side_panel:
+            self.side_panel.destroy()
+            self.side_panel = None
+        self.panel_open = False
     
     def _browse_file(self):
         filename = filedialog.askopenfilename(
@@ -201,8 +268,11 @@ class MainWindow:
             output_dir_str = str(self.output_dir.resolve())
             script_path_str = str(script_path.resolve())
             
+            enabled_services = [name for name, var in self.services.items() if var.get()]
+            services_json = json.dumps(enabled_services)
+            
             result = subprocess.run(
-                [self.lune_path, "run", script_path_str, input_file_str, output_dir_str],
+                [self.lune_path, "run", script_path_str, input_file_str, output_dir_str, services_json],
                 capture_output=True,
                 text=True
             )
