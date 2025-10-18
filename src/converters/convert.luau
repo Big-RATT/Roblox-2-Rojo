@@ -10,8 +10,8 @@ if #args < 2 then
 	process.exit(1)
 end
 
-local inputPath = args[1]
-local outputDir = args[2]
+local inputPath = args[1]:gsub("\\", "/")
+local outputDir = args[2]:gsub("\\", "/")
 
 local fileExtension = string.match(inputPath:lower(), "%.([^%.]+)$")
 local isModel = fileExtension == "rbxm" or fileExtension == "rbxmx"
@@ -42,7 +42,7 @@ if not fs.isDir(srcDir) then
 	fs.writeDir(srcDir)
 end
 
-local inputFilename = inputPath:match("[^/]+$")
+local inputFilename = inputPath:match("[^/\\]+$")
 local outputFilename = string.gsub(string.gsub(inputFilename, "%.rbxl$", ".rbxlx"), "%.rbxm$", ".rbxmx")
 local outputXmlPath = outputDir .. "/" .. outputFilename
 

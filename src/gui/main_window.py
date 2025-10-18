@@ -197,8 +197,12 @@ class MainWindow:
             
             self._log("Running Lune conversion script...")
             
+            input_file_str = str(self.selected_file.resolve())
+            output_dir_str = str(self.output_dir.resolve())
+            script_path_str = str(script_path.resolve())
+            
             result = subprocess.run(
-                [self.lune_path, "run", str(script_path), str(self.selected_file), str(self.output_dir)],
+                [self.lune_path, "run", script_path_str, input_file_str, output_dir_str],
                 capture_output=True,
                 text=True
             )
