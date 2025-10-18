@@ -28,7 +28,7 @@ jobs:
           pyinstaller --onefile --windowed --name Roblox2Rojo-Windows --add-data "src;src" main.py
       
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Roblox2Rojo-Windows
           path: dist/Roblox2Rojo-Windows.exe
@@ -55,7 +55,7 @@ jobs:
           pyinstaller --onefile --windowed --name Roblox2Rojo-Linux --add-data "src:src" main.py
       
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Roblox2Rojo-Linux
           path: dist/Roblox2Rojo-Linux
@@ -79,7 +79,7 @@ jobs:
           pyinstaller --onefile --windowed --name Roblox2Rojo-macOS --add-data "src:src" main.py
       
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Roblox2Rojo-macOS
           path: dist/Roblox2Rojo-macOS
@@ -95,7 +95,7 @@ jobs:
           fetch-depth: 0
       
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       
       - name: Generate changelog
         id: changelog
