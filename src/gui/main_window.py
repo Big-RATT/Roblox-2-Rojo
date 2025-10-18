@@ -24,7 +24,7 @@ class MainWindow:
         title = ttk.Label(main_frame, text="Rblx 2 Rojo Converter", font=("Arial", 16, "bold"))
         title.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
-        ttk.Label(main_frame, text="RBXL File:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text="RBXL/RBXM File:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.file_entry = ttk.Entry(main_frame, width=40)
         self.file_entry.grid(row=1, column=1, padx=5, pady=5)
         ttk.Button(main_frame, text="Browse", command=self._browse_file).grid(row=1, column=2, pady=5)
@@ -54,10 +54,12 @@ class MainWindow:
     
     def _browse_file(self):
         filename = filedialog.askopenfilename(
-            title="Select RBXL File",
+            title="Select RBXL/RBXM File",
             filetypes=[
+                ("Roblox Files", "*.rbxl *.rbxm"),
                 ("Roblox Place Files", "*.rbxl"),
-                ("Roblox XML Files", "*.rbxlx"),
+                ("Roblox Model Files", "*.rbxm"),
+                ("Roblox XML Files", "*.rbxlx *.rbxmx"),
                 ("All Files", "*.*")
             ]
         )

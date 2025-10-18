@@ -1,10 +1,10 @@
 # Rblx 2 Rojo
 
-A tool to convert Roblox RBXL files to Rojo project structure.
+A tool to convert Roblox RBXL/RBXM files to Rojo project structure.
 
 ## Features
 
-- **RBXL to RBXLX Conversion**: Uses Lune's native RBXL parser for reliable conversion
+- **RBXL/RBXM to RBXLX/RBXMX Conversion**: Uses Lune's native parser for reliable conversion of both place and model files
 - **Rojo Project Generation**: Automatically creates `default.project.json` with proper service mappings
 - **Service Support**: Extracts from:
   - ServerScriptService
@@ -27,7 +27,7 @@ A tool to convert Roblox RBXL files to Rojo project structure.
 ## Usage
 
 1. Launch the application: `python3 main.py`
-2. Click "Browse" to select your RBXL file
+2. Click "Browse" to select your RBXL/RBXM file
 3. Choose an output directory
 4. Click "Convert to Rojo Project"
 5. Your Rojo project will be generated with all scripts, GUIs, and RemoteEvents!

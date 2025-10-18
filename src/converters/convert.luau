@@ -6,19 +6,32 @@ local process = require("@lune/process")
 local args = process.args
 
 if #args < 2 then
-	print("Usage: lune run convert <input.rbxl> <output_dir>")
+	print("Usage: lune run convert <input.rbxl|rbxm> <output_dir>")
 	process.exit(1)
 end
 
 local inputPath = args[1]
 local outputDir = args[2]
 
-print("Loading RBXL file:", inputPath)
+local fileExtension = string.match(inputPath:lower(), "%.([^%.]+)$")
+local isModel = fileExtension == "rbxm" or fileExtension == "rbxmx"
 
-local placeData = fs.readFile(inputPath)
-local game = roblox.deserializePlace(placeData)
+print("Loading", isModel and "RBXM" or "RBXL", "file:", inputPath)
 
-print("✓ Loaded place file")
+local fileData = fs.readFile(inputPath)
+local game
+
+if isModel then
+	local instances = roblox.deserializeModel(fileData)
+	game = roblox.Instance.new("DataModel")
+	for _, instance in instances do
+		instance.Parent = game
+	end
+else
+	game = roblox.deserializePlace(fileData)
+end
+
+print("✓ Loaded file")
 
 if not fs.isDir(outputDir) then
 	fs.writeDir(outputDir)
@@ -29,10 +42,23 @@ if not fs.isDir(srcDir) then
 	fs.writeDir(srcDir)
 end
 
-local rbxlxPath = outputDir .. "/" .. string.gsub(inputPath:match("[^/]+$"), "%.rbxl$", ".rbxlx")
-local xmlData = roblox.serializePlace(game, true) -- true = XML format
-fs.writeFile(rbxlxPath, xmlData)
-print("✓ Saved RBXLX file:", rbxlxPath)
+local inputFilename = inputPath:match("[^/]+$")
+local outputFilename = string.gsub(string.gsub(inputFilename, "%.rbxl$", ".rbxlx"), "%.rbxm$", ".rbxmx")
+local outputXmlPath = outputDir .. "/" .. outputFilename
+
+local xmlData
+if isModel then
+	local instances = {}
+	for _, child in game:GetChildren() do
+		table.insert(instances, child)
+	end
+	xmlData = roblox.serializeModel(instances, true)
+else
+	xmlData = roblox.serializePlace(game, true)
+end
+
+fs.writeFile(outputXmlPath, xmlData)
+print("✓ Saved XML file:", outputXmlPath)
 
 local targetServices = {
 	"ServerScriptService",
@@ -311,42 +337,56 @@ local projectTree = {
 	}
 }
 
-for _, serviceName in targetServices do
-	local service = game:GetService(serviceName)
+if isModel then
+	print("Processing model instances...")
+	projectTree.tree.Model = {
+		["$path"] = "src/Model"
+	}
 	
-	if service then
-		local serviceDir = srcDir .. "/" .. serviceName
-		ensureDir(serviceDir)
+	local modelDir = srcDir .. "/Model"
+	ensureDir(modelDir)
+	
+	for _, instance in game:GetChildren() do
+		processInstance(instance, modelDir)
+	end
+else
+	for _, serviceName in targetServices do
+		local service = game:GetService(serviceName)
 		
-		print("Processing " .. serviceName .. "...")
-		
-		if serviceName == "StarterPlayer" then
-			projectTree.tree[serviceName] = {
-				StarterPlayerScripts = {
-					["$path"] = "src/StarterPlayer/StarterPlayerScripts"
-				},
-				StarterCharacterScripts = {
-					["$path"] = "src/StarterPlayer/StarterCharacterScripts"
-				}
-			}
+		if service then
+			local serviceDir = srcDir .. "/" .. serviceName
+			ensureDir(serviceDir)
 			
-			for _, child in service:GetChildren() do
-				if child.ClassName == "StarterPlayerScripts" or child.ClassName == "StarterCharacterScripts" then
-					local subDir = serviceDir .. "/" .. child.Name
-					ensureDir(subDir)
-					
-					for _, script in child:GetChildren() do
-						processInstance(script, subDir)
+			print("Processing " .. serviceName .. "...")
+			
+			if serviceName == "StarterPlayer" then
+				projectTree.tree[serviceName] = {
+					StarterPlayerScripts = {
+						["$path"] = "src/StarterPlayer/StarterPlayerScripts"
+					},
+					StarterCharacterScripts = {
+						["$path"] = "src/StarterPlayer/StarterCharacterScripts"
+					}
+				}
+				
+				for _, child in service:GetChildren() do
+					if child.ClassName == "StarterPlayerScripts" or child.ClassName == "StarterCharacterScripts" then
+						local subDir = serviceDir .. "/" .. child.Name
+						ensureDir(subDir)
+						
+						for _, script in child:GetChildren() do
+							processInstance(script, subDir)
+						end
 					end
 				end
-			end
-		else
-			projectTree.tree[serviceName] = {
-				["$path"] = "src/" .. serviceName
-			}
-			
-			for _, child in service:GetChildren() do
-				processInstance(child, serviceDir)
+			else
+				projectTree.tree[serviceName] = {
+					["$path"] = "src/" .. serviceName
+				}
+				
+				for _, child in service:GetChildren() do
+					processInstance(child, serviceDir)
+				end
 			end
 		end
 	end
