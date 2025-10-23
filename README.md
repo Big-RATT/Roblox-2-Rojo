@@ -32,6 +32,34 @@ A tool to convert Roblox RBXL/RBXM files to Rojo project structure.
 4. Click "Convert to Rojo Project"
 5. Your Rojo project will be generated with all scripts, GUIs, and RemoteEvents!
 
+## Antivirus False Positives
+
+### Why does my antivirus flag this as a virus?
+
+This application may trigger false positive detections from antivirus software. This is a common issue with Python applications packaged into executables using tools like PyInstaller or similar bundlers. Here's why:
+
+**Common Reasons for False Positives:**
+
+1. **Unsigned Executable**: The Windows/Mac executable is not digitally signed with an expensive code signing certificate, which makes antivirus software suspicious
+
+2. **PyInstaller/Bundler Signatures**: Packaging tools like PyInstaller are commonly used by both legitimate software and malware, so antivirus heuristics flag them as potentially dangerous
+
+3. **Lune Auto-Installation**: The application automatically downloads and installs Lune runtime if not found, which involves:
+   - Downloading executables from the internet
+   - Writing to your home directory (`~/.rblx2rojo/lune`)
+   - Making files executable
+   
+   These behaviors are legitimate but can trigger heuristic-based detection
+
+4. **Low Distribution Numbers**: Newly released versions haven't been analyzed by enough antivirus vendors to be whitelisted
+
+### Is this software safe?
+
+Yes! This is completely open-source software. You can:
+
+- **Review the source code**: All code is available in this repository
+- **Build it yourself**: Run from source with `python3 main.py` instead of using the executable
+
 ## Limitations
 
 - Requires Lune to be installed
