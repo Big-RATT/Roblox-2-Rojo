@@ -147,9 +147,12 @@ local function serializeValue(value)
 		return { Vector2 = { value.X, value.Y } }
 	elseif valueType == "Vector3" then
 		return { Vector3 = { value.X, value.Y, value.Z } }
+	elseif valueType == "CFrame" then
+		local components = { value:GetComponents() }
+		return { CFrame = components }
 	elseif valueType == "Rect" then
 		return nil
-	elseif valueType == "CFrame" or valueType == "Instance" then
+	elseif valueType == "Instance" then
 		return nil
 	elseif valueType == "EnumItem" then
 		local enumString = tostring(value)
@@ -197,6 +200,7 @@ local function getInstanceProperties(instance)
 		"CornerRadius",
 		"Color", "Thickness", "Transparency", "ApplyStrokeMode",
 		"PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom",
+		"CFrame",
 	}
 	
 	for _, propName in propertiesToExport do
@@ -311,6 +315,54 @@ local function processInstance(instance, parentPath)
 		return
 	end
 	
+	local valueClasses = {
+		CFrameValue = "CFrame",
+		StringValue = "String",
+		NumberValue = "Number",
+		BoolValue = "Bool",
+		IntValue = "Int",
+		Vector3Value = "Vector3",
+		ObjectValue = "Object",
+		BrickColorValue = "BrickColor",
+		Color3Value = "Color3",
+	}
+	
+	local valueProp = valueClasses[className]
+	if valueProp then
+		local valuePath = parentPath .. "/" .. name
+		ensureDir(valuePath)
+		
+		local meta = {
+			className = className,
+			ignoreUnknownInstances = true
+		}
+		
+		local successValue, value = pcall(function()
+			return instance.Value
+		end)
+		
+		if successValue and value ~= nil then
+			local serializedValue = serializeValue(value)
+			if serializedValue ~= nil then
+				meta.properties = {
+					Value = serializedValue
+				}
+			end
+		end
+		
+		local success, err = pcall(function()
+			fs.writeFile(valuePath .. "/init.meta.json", serde.encode("json", meta, true))
+		end)
+		
+		if success then
+			print("  • Created " .. className .. ":", name)
+		else
+			print("  ✗ Failed to create " .. className .. ":", name, err)
+		end
+		
+		return
+	end
+	
 	if guiClasses[className] then
 		local instancePath = parentPath .. "/" .. name
 		ensureDir(instancePath)
@@ -382,6 +434,10 @@ local function processInstance(instance, parentPath)
 		local meta = {
 			ignoreUnknownInstances = true
 		}
+		
+		if className ~= "Folder" and className ~= "Model" then
+			meta.className = className
+		end
 		
 		local success, err = pcall(function()
 			fs.writeFile(instancePath .. "/init.meta.json", serde.encode("json", meta, true))
