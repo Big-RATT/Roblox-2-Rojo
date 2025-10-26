@@ -432,12 +432,9 @@ local function processInstance(instance, parentPath)
 		ensureDir(instancePath)
 		
 		local meta = {
+			className = className,
 			ignoreUnknownInstances = true
 		}
-		
-		if className ~= "Folder" and className ~= "Model" then
-			meta.className = className
-		end
 		
 		local success, err = pcall(function()
 			fs.writeFile(instancePath .. "/init.meta.json", serde.encode("json", meta, true))
