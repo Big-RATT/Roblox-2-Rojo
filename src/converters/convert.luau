@@ -10,8 +10,8 @@ if #args < 2 then
 	process.exit(1)
 end
 
-local inputPath = args[1]
-local outputDir = args[2]
+local inputPath = args[1]:gsub("\\", "/")
+local outputDir = args[2]:gsub("\\", "/")
 
 local enabledServices = {}
 if args[3] then
